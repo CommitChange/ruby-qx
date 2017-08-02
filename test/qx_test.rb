@@ -175,6 +175,11 @@ class QxTest < Minitest::Test
     assert_equal parsed, %Q(UPDATE "table_name" SET "x" = 1, updated_at = '#{now}' WHERE (y = 2))
   end
 
+  def test_update_on_conflict
+    Qx.update(:table_name).set(x: 1).where("y = 2").on_conflict(:nothing).parse
+    assert_equal parsed, %Q(UPDATE "table_name" SET "x" = 1 WHERE (y = 2) ON CONFLICT DO NOTHING)
+  end
+
   def test_insert_timestamps
     now = Time.now.utc
     parsed = Qx.insert_into(:table_name).values({x: 1}).ts.parse
@@ -264,5 +269,7 @@ class QxTest < Minitest::Test
     expr = expr.remove_clause('limit')
     assert_equal "SELECT * FROM table", expr.parse
   end
+
+
 
 end
