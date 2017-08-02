@@ -339,6 +339,7 @@ class Qx
 
   def on_conflict(action)
     @tree[:ONCONFLICT] = 'ON CONFLICT DO NOTHING' if action == :nothing
+    self
   end
 
   def explain
