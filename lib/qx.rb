@@ -59,12 +59,26 @@ class Qx
     elsif expr[:INSERT_INTO]
       str =  "INSERT INTO #{expr[:INSERT_INTO]} (#{expr[:INSERT_COLUMNS].join(', ')})"
       throw ArgumentError.new('VALUES (or SELECT) clause is missing for INSERT INTO') unless expr[:VALUES] || expr[:SELECT]
+      throw ArgumentError.new("For safety, you can't use SELECT without insert columns for an INSERT INTO") if !expr[:INSERT_COLUMNS] && expr[:SELECT]
       if expr[:SELECT]
         str += ' ' + parse_select(expr)
       else
         str += " VALUES #{expr[:VALUES].map { |vals| "(#{vals.join(', ')})" }.join(', ')}"
       end
-      str += ' ' + expr[:ON_CONFLICT] if expr[:ON_CONFLICT]
+      if expr[:ON_CONFLICT]
+        str += ' ON CONFLICT'
+
+        if expr[:CONFLICT_COLUMNS]
+          str += " (#{expr[:CONFLICT_COLUMNS].join(', ')})"
+        elsif expr[:ON_CONSTRAINT]
+          str += " ON CONSTRAINT #{expr[:ON_CONSTRAINT]}"
+        end
+        str += ' DO NOTHING' if !expr[:CONFLICT_UPSERT]
+        if expr[:CONFLICT_UPSERT]
+          set_str = expr[:INSERT_COLUMNS].select{|i| i != 'created_at'}.map{|i| "#{i} = EXCLUDED.#{i}" }
+          str +=  " DO UPDATE SET #{set_str.join(', ')}"
+        end
+      end
       str += ' RETURNING ' + expr[:RETURNING].join(', ') if expr[:RETURNING]
     elsif expr[:SELECT]
       str = parse_select(expr)
@@ -154,6 +168,7 @@ class Qx
     self
   end
 
+  # @returns [Qx]
   def self.insert_into(table_name, cols = [])
     new(INSERT_INTO: Qx.quote_ident(table_name), INSERT_COLUMNS: cols.map { |c| Qx.quote_ident(c) })
   end
@@ -337,8 +352,23 @@ class Qx
     self
   end
 
-  def on_conflict(action)
-    @tree[:ON_CONFLICT] = 'ON CONFLICT DO NOTHING' if action == :nothing
+  def on_conflict()
+    @tree[:ON_CONFLICT] = true
+    self
+  end
+
+  def conflict_columns(*columns)
+    @tree[:CONFLICT_COLUMNS] = columns
+    self
+  end
+
+  def on_constraint(constraint)
+    @tree[:ON_CONSTRAINT] = constraint
+    self
+  end
+
+  def upsert(on_index, columns=nil)
+    @tree[:CONFLICT_UPSERT] = {index: on_index, cols: columns}
     self
   end
 
