@@ -38,6 +38,7 @@ class Qx
     str += ' FROM ' + expr[:FROM]
     str += expr[:JOIN].map { |from, cond| " JOIN #{from} ON #{cond}" }.join if expr[:JOIN]
     str += expr[:LEFT_JOIN].map { |from, cond| " LEFT JOIN #{from} ON #{cond}" }.join if expr[:LEFT_JOIN]
+    str += expr[:LEFT_OUTER_JOIN].map { |from, cond| " LEFT OUTER JOIN #{from} ON #{cond}" }.join if expr[:LEFT_OUTER_JOIN]
     str += ' WHERE ' + expr[:WHERE].map { |w| "(#{w})" }.join(' AND ') if expr[:WHERE]
     str += ' GROUP BY ' + expr[:GROUP_BY].join(', ') if expr[:GROUP_BY]
     str += ' HAVING ' + expr[:HAVING].map { |h| "(#{h})" }.join(' AND ') if expr[:HAVING]
@@ -290,6 +291,19 @@ class Qx
     js = Qx.get_join_param(joins)
     @tree[:LEFT_JOIN] ||= []
     @tree[:LEFT_JOIN].concat(Qx.parse_joins(js))
+    self
+  end
+
+  def left_outer_join(*joins)
+    js = Qx.get_join_param(joins)
+    @tree[:LEFT_OUTER_JOIN] = Qx.parse_joins(js)
+    self
+  end
+
+  def add_left_outer_join(*joins)
+    js = Qx.get_join_param(joins)
+    @tree[:LEFT_OUTER_JOIN] ||= []
+    @tree[:LEFT_OUTER_JOIN].concat(Qx.parse_joins(js))
     self
   end
 
