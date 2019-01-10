@@ -1,3 +1,5 @@
+# Further maintenance of this library will happen in [Houdini](https://github.com/houdiniproject/houdini)
+
 # This library is deprecated. You can use [Arel](https://github.com/rails/arel) instead
 
 # Qx
